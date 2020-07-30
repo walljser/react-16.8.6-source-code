@@ -22,11 +22,16 @@ const RESERVED_PROPS = {
 
 let specialPropKeyWarningShown, specialPropRefWarningShown;
 
+// 判断是否设置ref
 function hasValidRef(config) {
+  // 开发环境
   if (__DEV__) {
     if (hasOwnProperty.call(config, 'ref')) {
+      // config里有ref属性
+      // es5语法 Object.getOwnPropertyDescriptor
       const getter = Object.getOwnPropertyDescriptor(config, 'ref').get;
       if (getter && getter.isReactWarning) {
+        // isReactWarning，忽略ref
         return false;
       }
     }
@@ -34,6 +39,7 @@ function hasValidRef(config) {
   return config.ref !== undefined;
 }
 
+// 判断是否设置key，代码与hasValidRef相同
 function hasValidKey(config) {
   if (__DEV__) {
     if (hasOwnProperty.call(config, 'key')) {
@@ -108,12 +114,16 @@ function defineRefPropWarningGetter(props, displayName) {
  * @param {*} props
  * @internal
  */
+// 一个工厂函数，用于创建 React Element
+// 比较重要的内容是，有一个属性$$typeof：REACT_ELEMENT_TYPE，表示这是一个ReactElement
 const ReactElement = function(type, key, ref, self, source, owner, props) {
   const element = {
     // This tag allows us to uniquely identify this as a React Element
+    // 标识，重要！
     $$typeof: REACT_ELEMENT_TYPE,
 
     // Built-in properties that belong on the element
+    // 元素的属性
     type: type,
     key: key,
     ref: ref,
@@ -123,6 +133,7 @@ const ReactElement = function(type, key, ref, self, source, owner, props) {
     _owner: owner,
   };
 
+  // ???
   if (__DEV__) {
     // The validation flag is currently mutative. We put it on
     // an external backing store so that we can freeze the whole object.
@@ -168,6 +179,12 @@ const ReactElement = function(type, key, ref, self, source, owner, props) {
  * Create and return a new ReactElement of the given type.
  * See https://reactjs.org/docs/react-api.html#createelement
  */
+// 根据传入的type，创建ReactElement
+// 例如
+// type: "div",
+// config: { class: "test", id=1 },
+// children: React.createElement("div", { id="child" }, "child")
+// 另外： 参数这里只写了一个children，后面有根据arguments判断，处理多个children，从第三个参数开始，全部都是children
 export function createElement(type, config, children) {
   let propName;
 
@@ -181,16 +198,20 @@ export function createElement(type, config, children) {
 
   if (config != null) {
     if (hasValidRef(config)) {
+      // 赋值ref
       ref = config.ref;
     }
     if (hasValidKey(config)) {
+      // 赋值key， 转为字符串，防止key是Number
       key = '' + config.key;
     }
 
+    // ???
     self = config.__self === undefined ? null : config.__self;
     source = config.__source === undefined ? null : config.__source;
     // Remaining properties are added to a new props object
     for (propName in config) {
+      // 遍历config，剔除RESERVED_PROPS定义的内建属性(key,ref,__self,__source)，其他的放到的props里面
       if (
         hasOwnProperty.call(config, propName) &&
         !RESERVED_PROPS.hasOwnProperty(propName)
@@ -202,15 +223,20 @@ export function createElement(type, config, children) {
 
   // Children can be more than one argument, and those are transferred onto
   // the newly allocated props object.
+  // 处理children
   const childrenLength = arguments.length - 2;
   if (childrenLength === 1) {
+    // 一个children
     props.children = children;
   } else if (childrenLength > 1) {
+    // 第三个参数开始，都是children
     const childArray = Array(childrenLength);
     for (let i = 0; i < childrenLength; i++) {
+      // 将children参数都放到childArray中
       childArray[i] = arguments[i + 2];
     }
     if (__DEV__) {
+      // 冻结childArray
       if (Object.freeze) {
         Object.freeze(childArray);
       }
@@ -219,16 +245,19 @@ export function createElement(type, config, children) {
   }
 
   // Resolve default props
+  // 判断是否有设置defaultProps，props默认值，进行相关的赋值操作
   if (type && type.defaultProps) {
     const defaultProps = type.defaultProps;
     for (propName in defaultProps) {
       if (props[propName] === undefined) {
+        // 只有在prop的值为undefined时，才会进行赋值
         props[propName] = defaultProps[propName];
       }
     }
   }
   if (__DEV__) {
     if (key || ref) {
+      // type === 'function'说明type是组件，设置displayName
       const displayName =
         typeof type === 'function'
           ? type.displayName || type.name || 'Unknown'
@@ -241,6 +270,7 @@ export function createElement(type, config, children) {
       }
     }
   }
+  // 调用工厂函数
   return ReactElement(
     type,
     key,
@@ -363,6 +393,7 @@ export function cloneElement(element, config, children) {
  * @return {boolean} True if `object` is a ReactElement.
  * @final
  */
+// 用于判断是否是ReactElement
 export function isValidElement(object) {
   return (
     typeof object === 'object' &&
